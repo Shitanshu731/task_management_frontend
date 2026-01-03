@@ -29,29 +29,13 @@ export const useTasks = (statusFilter = null) => {
     }
   }, [statusFilter]);
 
-  // Create task with optimistic update
+  // Create task WITHOUT optimistic update to avoid duplicates
   const createTask = async (taskData) => {
-    const tempId = Date.now();
-    const optimisticTask = {
-      id: tempId,
-      ...taskData,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Optimistic update
-    setTasks((prev) => [optimisticTask, ...prev]);
-
     try {
       const response = await axios.post(`${API_URL}/tasks`, taskData);
-      // Replace optimistic task with real one
-      setTasks((prev) =>
-        prev.map((task) => (task.id === tempId ? response.data.data : task))
-      );
+      // Let WebSocket handle the update
       return response.data.data;
     } catch (err) {
-      // Rollback on error
-      setTasks((prev) => prev.filter((task) => task.id !== tempId));
       setError(err.message);
       throw err;
     }
@@ -107,20 +91,28 @@ export const useTasks = (statusFilter = null) => {
     if (!socket) return;
 
     socket.on("task:created", (newTask) => {
-      setTasks((prev) => {
-        // Avoid duplicates (optimistic update might have added it)
-        const exists = prev.some((task) => task.id === newTask.id);
-        if (exists) {
-          return prev.map((task) => (task.id === newTask.id ? newTask : task));
-        }
-        return [newTask, ...prev];
-      });
+      // Add new task if it matches current filter or no filter is active
+      if (!statusFilter || newTask.status === statusFilter) {
+        setTasks((prev) => {
+          // Avoid duplicates
+          const exists = prev.some((task) => task.id === newTask.id);
+          if (exists) return prev;
+          return [newTask, ...prev];
+        });
+      }
     });
 
     socket.on("task:updated", (updatedTask) => {
-      setTasks((prev) =>
-        prev.map((task) => (task.id === updatedTask.id ? updatedTask : task))
-      );
+      setTasks((prev) => {
+        // If filter is active and updated task doesn't match, remove it
+        if (statusFilter && updatedTask.status !== statusFilter) {
+          return prev.filter((task) => task.id !== updatedTask.id);
+        }
+        // Otherwise update it
+        return prev.map((task) =>
+          task.id === updatedTask.id ? updatedTask : task
+        );
+      });
     });
 
     socket.on("task:deleted", ({ id }) => {
@@ -132,7 +124,7 @@ export const useTasks = (statusFilter = null) => {
       socket.off("task:updated");
       socket.off("task:deleted");
     };
-  }, [socket]);
+  }, [socket, statusFilter]);
 
   // Initial fetch
   useEffect(() => {
