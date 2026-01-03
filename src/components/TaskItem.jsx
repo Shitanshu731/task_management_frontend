@@ -99,6 +99,33 @@ const TaskItem = ({ task, onUpdate, onDelete }) => {
         )}
       </div>
 
+      {(task.created_by || task.updated_by) && (
+        <div className="task-user-info">
+          {task.created_by && (
+            <span className="user-badge">
+              <span
+                className="user-avatar-small"
+                style={{ backgroundColor: task.created_by_color || "#6366f1" }}
+              >
+                {task.created_by.charAt(0).toUpperCase()}
+              </span>
+              Created by {task.created_by}
+            </span>
+          )}
+          {task.updated_by && task.updated_by !== task.created_by && (
+            <span className="user-badge">
+              <span
+                className="user-avatar-small"
+                style={{ backgroundColor: task.updated_by_color || "#6366f1" }}
+              >
+                {task.updated_by.charAt(0).toUpperCase()}
+              </span>
+              Updated by {task.updated_by}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="task-actions">
         <select
           value={task.status}

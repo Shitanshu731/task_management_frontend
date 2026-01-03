@@ -4,6 +4,7 @@ import { useTasks } from "./hooks/useTasks";
 import { useSocket } from "./hooks/useSocket";
 import TaskForm from "./components/TaskForm";
 import TaskList from "./components/TaskList";
+import OnlineUsers from "./components/OnlineUsers";
 import { StatCardSkeleton } from "./components/Skeleton";
 import "./App.css";
 
@@ -14,9 +15,9 @@ function App() {
   const [showForm, setShowForm] = useState(false);
   const [allTasks, setAllTasks] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
+  const { socket, currentUser, connectedUsers } = useSocket();
   const { tasks, loading, error, createTask, updateTask, deleteTask } =
-    useTasks(statusFilter);
-  const socket = useSocket();
+    useTasks(statusFilter, socket);
 
   // Fetch all tasks for stats
   const fetchAllTasks = async () => {
@@ -71,7 +72,14 @@ function App() {
               <span className="logo-icon">✓</span>
               <span className="logo-text">TaskFlow</span>
             </div>
-            <p className="header-subtitle">Real-time task management</p>
+            <p className="header-subtitle">
+              Real-time task management
+              {currentUser && (
+                <span style={{ marginLeft: "0.5rem", opacity: 0.8 }}>
+                  • {currentUser.username}
+                </span>
+              )}
+            </p>
           </div>
           <button
             className="btn-create-task"
@@ -163,6 +171,8 @@ function App() {
               </button>
             </div>
           </div>
+
+          <OnlineUsers users={connectedUsers} currentUser={currentUser} />
         </aside>
 
         <main className="main-content">

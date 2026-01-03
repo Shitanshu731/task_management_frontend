@@ -1,14 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { useSocket } from "./useSocket";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-export const useTasks = (statusFilter = null) => {
+export const useTasks = (statusFilter = null, socket = null) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const socket = useSocket();
+
+  // Axios interceptor to add socket ID to requests
+  useEffect(() => {
+    if (socket) {
+      const interceptor = axios.interceptors.request.use((config) => {
+        config.headers["x-socket-id"] = socket.id;
+        return config;
+      });
+
+      return () => axios.interceptors.request.eject(interceptor);
+    }
+  }, [socket]);
 
   // Fetch tasks from API
   const fetchTasks = useCallback(async () => {
@@ -29,11 +39,10 @@ export const useTasks = (statusFilter = null) => {
     }
   }, [statusFilter]);
 
-  // Create task WITHOUT optimistic update to avoid duplicates
+  // Create task
   const createTask = async (taskData) => {
     try {
       const response = await axios.post(`${API_URL}/tasks`, taskData);
-      // Let WebSocket handle the update
       return response.data.data;
     } catch (err) {
       setError(err.message);
@@ -45,7 +54,6 @@ export const useTasks = (statusFilter = null) => {
   const updateTask = async (id, updates) => {
     const previousTasks = [...tasks];
 
-    // Optimistic update
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
@@ -56,13 +64,11 @@ export const useTasks = (statusFilter = null) => {
 
     try {
       const response = await axios.patch(`${API_URL}/tasks/${id}`, updates);
-      // Update with server response
       setTasks((prev) =>
         prev.map((task) => (task.id === id ? response.data.data : task))
       );
       return response.data.data;
     } catch (err) {
-      // Rollback on error
       setTasks(previousTasks);
       setError(err.message);
       throw err;
@@ -72,14 +78,11 @@ export const useTasks = (statusFilter = null) => {
   // Delete task with optimistic update
   const deleteTask = async (id) => {
     const previousTasks = [...tasks];
-
-    // Optimistic update
     setTasks((prev) => prev.filter((task) => task.id !== id));
 
     try {
       await axios.delete(`${API_URL}/tasks/${id}`);
     } catch (err) {
-      // Rollback on error
       setTasks(previousTasks);
       setError(err.message);
       throw err;
@@ -91,10 +94,8 @@ export const useTasks = (statusFilter = null) => {
     if (!socket) return;
 
     socket.on("task:created", (newTask) => {
-      // Add new task if it matches current filter or no filter is active
       if (!statusFilter || newTask.status === statusFilter) {
         setTasks((prev) => {
-          // Avoid duplicates
           const exists = prev.some((task) => task.id === newTask.id);
           if (exists) return prev;
           return [newTask, ...prev];
@@ -104,11 +105,9 @@ export const useTasks = (statusFilter = null) => {
 
     socket.on("task:updated", (updatedTask) => {
       setTasks((prev) => {
-        // If filter is active and updated task doesn't match, remove it
         if (statusFilter && updatedTask.status !== statusFilter) {
           return prev.filter((task) => task.id !== updatedTask.id);
         }
-        // Otherwise update it
         return prev.map((task) =>
           task.id === updatedTask.id ? updatedTask : task
         );
