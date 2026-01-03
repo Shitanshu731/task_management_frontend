@@ -1,9 +1,19 @@
 import TaskItem from "./TaskItem";
+import { TaskItemSkeleton } from "./Skeleton";
 import "./TaskList.css";
 
 const TaskList = ({ tasks, loading, error, onUpdate, onDelete }) => {
   if (loading) {
-    return <div className="loading">Loading tasks...</div>;
+    return (
+      <div className="task-list">
+        <h2>Loading tasks...</h2>
+        <div className="tasks-container">
+          <TaskItemSkeleton />
+          <TaskItemSkeleton />
+          <TaskItemSkeleton />
+        </div>
+      </div>
+    );
   }
 
   if (error) {

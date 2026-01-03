@@ -4,6 +4,7 @@ import { useTasks } from "./hooks/useTasks";
 import { useSocket } from "./hooks/useSocket";
 import TaskForm from "./components/TaskForm";
 import TaskList from "./components/TaskList";
+import { StatCardSkeleton } from "./components/Skeleton";
 import "./App.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -12,6 +13,7 @@ function App() {
   const [statusFilter, setStatusFilter] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [allTasks, setAllTasks] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(true);
   const { tasks, loading, error, createTask, updateTask, deleteTask } =
     useTasks(statusFilter);
   const socket = useSocket();
@@ -19,10 +21,13 @@ function App() {
   // Fetch all tasks for stats
   const fetchAllTasks = async () => {
     try {
+      setStatsLoading(true);
       const response = await axios.get(`${API_URL}/tasks`);
       setAllTasks(response.data.data);
     } catch (err) {
       console.error("Error fetching all tasks:", err);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -79,22 +84,33 @@ function App() {
       </header>
 
       <div className="stats-bar">
-        <div className="stat-card">
-          <span className="stat-value">{stats.total}</span>
-          <span className="stat-label">Total Tasks</span>
-        </div>
-        <div className="stat-card stat-pending">
-          <span className="stat-value">{stats.pending}</span>
-          <span className="stat-label">Pending</span>
-        </div>
-        <div className="stat-card stat-progress">
-          <span className="stat-value">{stats.inProgress}</span>
-          <span className="stat-label">In Progress</span>
-        </div>
-        <div className="stat-card stat-completed">
-          <span className="stat-value">{stats.completed}</span>
-          <span className="stat-label">Completed</span>
-        </div>
+        {statsLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <div className="stat-card">
+              <span className="stat-value">{stats.total}</span>
+              <span className="stat-label">Total Tasks</span>
+            </div>
+            <div className="stat-card stat-pending">
+              <span className="stat-value">{stats.pending}</span>
+              <span className="stat-label">Pending</span>
+            </div>
+            <div className="stat-card stat-progress">
+              <span className="stat-value">{stats.inProgress}</span>
+              <span className="stat-label">In Progress</span>
+            </div>
+            <div className="stat-card stat-completed">
+              <span className="stat-value">{stats.completed}</span>
+              <span className="stat-label">Completed</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="container">
