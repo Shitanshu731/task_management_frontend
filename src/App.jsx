@@ -13,6 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 function App() {
   const [statusFilter, setStatusFilter] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [allTasks, setAllTasks] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
   const { socket, currentUser, connectedUsers } = useSocket();
@@ -63,8 +64,38 @@ function App() {
 
   const stats = getTaskStats();
 
+  const handleFilterClick = (filter) => {
+    setStatusFilter(filter);
+    setSidebarOpen(false);
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
   return (
     <div className="app">
+      <button
+        className={`hamburger-btn ${sidebarOpen ? "active" : ""}`}
+        onClick={toggleSidebar}
+        aria-label="Toggle menu"
+      >
+        <div className="hamburger-icon">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </button>
+
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? "active" : ""}`}
+        onClick={closeSidebar}
+      ></div>
+
       <header className="app-header">
         <div className="header-content">
           <div className="header-left">
@@ -122,7 +153,7 @@ function App() {
       </div>
 
       <div className="container">
-        <aside className="sidebar">
+        <aside className={`sidebar ${sidebarOpen ? "active" : ""}`}>
           <div className="filters-section">
             <h3 className="section-title">
               <span className="title-icon">🎯</span>
@@ -133,7 +164,7 @@ function App() {
                 className={`filter-btn ${
                   statusFilter === null ? "active" : ""
                 }`}
-                onClick={() => setStatusFilter(null)}
+                onClick={() => handleFilterClick(null)}
               >
                 <span className="filter-icon">📋</span>
                 <span>All Tasks</span>
@@ -143,7 +174,7 @@ function App() {
                 className={`filter-btn ${
                   statusFilter === "pending" ? "active" : ""
                 }`}
-                onClick={() => setStatusFilter("pending")}
+                onClick={() => handleFilterClick("pending")}
               >
                 <span className="filter-icon">⏳</span>
                 <span>Pending</span>
@@ -153,7 +184,7 @@ function App() {
                 className={`filter-btn ${
                   statusFilter === "in-progress" ? "active" : ""
                 }`}
-                onClick={() => setStatusFilter("in-progress")}
+                onClick={() => handleFilterClick("in-progress")}
               >
                 <span className="filter-icon">🔄</span>
                 <span>In Progress</span>
@@ -163,7 +194,7 @@ function App() {
                 className={`filter-btn ${
                   statusFilter === "completed" ? "active" : ""
                 }`}
-                onClick={() => setStatusFilter("completed")}
+                onClick={() => handleFilterClick("completed")}
               >
                 <span className="filter-icon">✅</span>
                 <span>Completed</span>
