@@ -3,6 +3,14 @@ import { TaskItemSkeleton } from "./Skeleton";
 import "./TaskList.css";
 
 const TaskList = ({ tasks, loading, error, onUpdate, onDelete }) => {
+  // Calculate task counts by status
+  const getTaskCounts = () => {
+    const pending = tasks.filter((t) => t.status === "pending").length;
+    const inProgress = tasks.filter((t) => t.status === "in-progress").length;
+    const completed = tasks.filter((t) => t.status === "completed").length;
+    return { pending, inProgress, completed };
+  };
+
   if (loading) {
     return (
       <div className="task-list">
@@ -28,9 +36,27 @@ const TaskList = ({ tasks, loading, error, onUpdate, onDelete }) => {
     );
   }
 
+  const counts = getTaskCounts();
+
   return (
     <div className="task-list">
-      <h2>Tasks ({tasks.length})</h2>
+      <div className="task-list-header">
+        <h2>Tasks ({tasks.length})</h2>
+        <div className="task-counts">
+          <div className="count-item count-pending">
+            <span className="count-icon">⏳</span>
+            <span className="count-value">{counts.pending}</span>
+          </div>
+          <div className="count-item count-progress">
+            <span className="count-icon">🔄</span>
+            <span className="count-value">{counts.inProgress}</span>
+          </div>
+          <div className="count-item count-completed">
+            <span className="count-icon">✅</span>
+            <span className="count-value">{counts.completed}</span>
+          </div>
+        </div>
+      </div>
       <div className="tasks-container">
         {tasks.map((task) => (
           <TaskItem
